@@ -12,9 +12,12 @@ function createDefaultStep(): RotationStep {
   return { id: generateStepId(), axis: 'x', angleDeg: 0 };
 }
 
+const URL_UPDATE_DELAY = 300;
+
 export function useRotation() {
   const { getChain, setChain } = useUrlState();
   const initialized = useRef(false);
+  const urlUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [steps, setSteps] = useState<RotationStep[]>(() => {
     const urlSteps = getChain();
@@ -25,13 +28,28 @@ export function useRotation() {
     return [createDefaultStep()];
   });
 
-  // Update URL when steps change
+  // Debounced URL update when steps change
   useEffect(() => {
     if (!initialized.current) {
       initialized.current = true;
       return;
     }
-    setChain(steps);
+
+    // Clear previous timer
+    if (urlUpdateTimer.current) {
+      clearTimeout(urlUpdateTimer.current);
+    }
+
+    // Set new timer for debounced update
+    urlUpdateTimer.current = setTimeout(() => {
+      setChain(steps);
+    }, URL_UPDATE_DELAY);
+
+    return () => {
+      if (urlUpdateTimer.current) {
+        clearTimeout(urlUpdateTimer.current);
+      }
+    };
   }, [steps, setChain]);
 
   const result: RotationResult = useMemo(() => {

@@ -62,8 +62,8 @@ export function RotationChainCalculator() {
           <div key={step.id} className="flex items-center gap-3">
             <RotationStep
               step={step}
-              onUpdate={(axis, angleDeg) => updateStep(step.id, axis, angleDeg)}
-              onRemove={() => removeStep(step.id)}
+              onUpdate={updateStep}
+              onRemove={removeStep}
               canRemove={steps.length > 1}
             />
             {index < steps.length - 1 && (

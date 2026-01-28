@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import type { Axis, RotationStep as RotationStepType } from '../../types';
 import { axisAngleToQuaternion, formatNumber } from '../../utils/rotation';
@@ -16,8 +16,8 @@ const DEFAULT_CAMERA: CameraState = {
 
 interface RotationStepProps {
   step: RotationStepType;
-  onUpdate: (axis: Axis, angleDeg: number) => void;
-  onRemove: () => void;
+  onUpdate: (id: string, axis: Axis, angleDeg: number) => void;
+  onRemove: (id: string) => void;
   canRemove: boolean;
 }
 
@@ -27,7 +27,7 @@ const AXIS_OPTIONS: { value: Axis; label: string }[] = [
   { value: 'z', label: 'Z axis' },
 ];
 
-export function RotationStep({
+export const RotationStep = memo(function RotationStep({
   step,
   onUpdate,
   onRemove,
@@ -35,45 +35,59 @@ export function RotationStep({
 }: RotationStepProps) {
   const { angleUnit } = useSettings();
   const [cameraState, setCameraState] = useState<CameraState>(DEFAULT_CAMERA);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
 
   const handleCameraChange = useCallback((state: CameraState) => {
     setCameraState(state);
   }, []);
 
-  const displayValue =
-    angleUnit === 'deg' ? step.angleDeg : (step.angleDeg * Math.PI) / 180;
-  const [inputValue, setInputValue] = useState(formatNumber(displayValue));
-
-  useEffect(() => {
+  const displayValue = useMemo(() => {
     const value =
       angleUnit === 'deg' ? step.angleDeg : (step.angleDeg * Math.PI) / 180;
-    setInputValue(formatNumber(value));
+    return formatNumber(value);
   }, [step.angleDeg, angleUnit]);
 
   const quaternion = useMemo(() => {
     return axisAngleToQuaternion(step.axis, step.angleDeg);
   }, [step.axis, step.angleDeg]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setInputValue(value);
+  const handleInputFocus = () => {
+    setIsEditing(true);
+    setEditValue(displayValue);
+  };
 
-    const parsed = parseFloat(value);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditValue(e.target.value);
+  };
+
+  const handleInputBlur = () => {
+    setIsEditing(false);
+    const parsed = parseFloat(editValue);
     if (!Number.isNaN(parsed)) {
       // Convert to degrees if input is in radians
       const degValue = angleUnit === 'deg' ? parsed : (parsed * 180) / Math.PI;
-      onUpdate(step.axis, degValue);
+      onUpdate(step.id, step.axis, degValue);
     }
   };
 
-  const handleBlur = () => {
-    const parsed = parseFloat(inputValue);
-    if (Number.isNaN(parsed)) {
-      setInputValue('0');
-      onUpdate(step.axis, 0);
-    } else {
-      setInputValue(formatNumber(parsed));
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
     }
+  };
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const degValue = parseFloat(e.target.value);
+    onUpdate(step.id, step.axis, degValue);
+  };
+
+  const handleAxisChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    onUpdate(step.id, e.target.value as Axis, step.angleDeg);
+  };
+
+  const handleRemove = () => {
+    onRemove(step.id);
   };
 
   return (
@@ -81,7 +95,7 @@ export function RotationStep({
       <div className="flex justify-between items-start mb-2 w-full">
         <select
           value={step.axis}
-          onChange={(e) => onUpdate(e.target.value as Axis, step.angleDeg)}
+          onChange={handleAxisChange}
           className="flex-1 bg-gray-50 border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 focus:outline-none focus:border-blue-500"
         >
           {AXIS_OPTIONS.map((opt) => (
@@ -93,7 +107,7 @@ export function RotationStep({
         {canRemove && (
           <button
             type="button"
-            onClick={onRemove}
+            onClick={handleRemove}
             className="text-gray-400 hover:text-red-500 text-sm ml-2"
             title="Remove"
           >
@@ -102,17 +116,29 @@ export function RotationStep({
         )}
       </div>
 
-      <div className="flex items-center gap-1 mb-2 w-full">
+      <div className="flex items-center gap-1 mb-1 w-full">
         <input
           type="text"
           inputMode="numeric"
-          value={inputValue}
+          value={isEditing ? editValue : displayValue}
+          onFocus={handleInputFocus}
           onChange={handleInputChange}
-          onBlur={handleBlur}
+          onBlur={handleInputBlur}
+          onKeyDown={handleInputKeyDown}
           className="flex-1 bg-gray-50 border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 text-right focus:outline-none focus:border-blue-500"
         />
         <span className="text-gray-500 text-sm">{angleUnit}</span>
       </div>
+
+      <input
+        type="range"
+        min={-180}
+        max={180}
+        step={1}
+        value={step.angleDeg}
+        onChange={handleSliderChange}
+        className="w-full mb-2 accent-blue-500"
+      />
 
       {/* Before/After Visualization */}
       <div className="flex items-center gap-2">
@@ -142,4 +168,4 @@ export function RotationStep({
       </div>
     </div>
   );
-}
+});
