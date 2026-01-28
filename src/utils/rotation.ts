@@ -149,6 +149,110 @@ export function computeRotationChain(steps: RotationStep[]): RotationResult {
 }
 
 /**
+ * Converts Euler angles (XYZ order, degrees) to quaternion
+ */
+export function eulerToQuaternion(euler: EulerAngles): Quaternion {
+  const roll = euler.roll * DEG_TO_RAD;
+  const pitch = euler.pitch * DEG_TO_RAD;
+  const yaw = euler.yaw * DEG_TO_RAD;
+
+  const cr = Math.cos(roll / 2);
+  const sr = Math.sin(roll / 2);
+  const cp = Math.cos(pitch / 2);
+  const sp = Math.sin(pitch / 2);
+  const cy = Math.cos(yaw / 2);
+  const sy = Math.sin(yaw / 2);
+
+  return normalizeQuaternion({
+    w: cr * cp * cy + sr * sp * sy,
+    x: sr * cp * cy - cr * sp * sy,
+    y: cr * sp * cy + sr * cp * sy,
+    z: cr * cp * sy - sr * sp * cy,
+  });
+}
+
+/**
+ * Converts axis-angle representation to quaternion
+ * @param axisX X component of rotation axis
+ * @param axisY Y component of rotation axis
+ * @param axisZ Z component of rotation axis
+ * @param angleDeg Rotation angle in degrees
+ */
+export function axisAngleVectorToQuaternion(
+  axisX: number,
+  axisY: number,
+  axisZ: number,
+  angleDeg: number,
+): Quaternion {
+  // Normalize axis
+  const mag = Math.sqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
+  if (mag < 1e-10) return identityQuaternion();
+
+  const nx = axisX / mag;
+  const ny = axisY / mag;
+  const nz = axisZ / mag;
+
+  const halfAngle = (angleDeg * DEG_TO_RAD) / 2;
+  const s = Math.sin(halfAngle);
+  const c = Math.cos(halfAngle);
+
+  return {
+    x: nx * s,
+    y: ny * s,
+    z: nz * s,
+    w: c,
+  };
+}
+
+/**
+ * Converts rotation matrix to quaternion
+ */
+export function matrixToQuaternion(m: RotationMatrix): Quaternion {
+  const trace = m[0][0] + m[1][1] + m[2][2];
+  let x: number, y: number, z: number, w: number;
+
+  if (trace > 0) {
+    const s = 0.5 / Math.sqrt(trace + 1.0);
+    w = 0.25 / s;
+    x = (m[2][1] - m[1][2]) * s;
+    y = (m[0][2] - m[2][0]) * s;
+    z = (m[1][0] - m[0][1]) * s;
+  } else if (m[0][0] > m[1][1] && m[0][0] > m[2][2]) {
+    const s = 2.0 * Math.sqrt(1.0 + m[0][0] - m[1][1] - m[2][2]);
+    w = (m[2][1] - m[1][2]) / s;
+    x = 0.25 * s;
+    y = (m[0][1] + m[1][0]) / s;
+    z = (m[0][2] + m[2][0]) / s;
+  } else if (m[1][1] > m[2][2]) {
+    const s = 2.0 * Math.sqrt(1.0 + m[1][1] - m[0][0] - m[2][2]);
+    w = (m[0][2] - m[2][0]) / s;
+    x = (m[0][1] + m[1][0]) / s;
+    y = 0.25 * s;
+    z = (m[1][2] + m[2][1]) / s;
+  } else {
+    const s = 2.0 * Math.sqrt(1.0 + m[2][2] - m[0][0] - m[1][1]);
+    w = (m[1][0] - m[0][1]) / s;
+    x = (m[0][2] + m[2][0]) / s;
+    y = (m[1][2] + m[2][1]) / s;
+    z = 0.25 * s;
+  }
+
+  return normalizeQuaternion({ x, y, z, w });
+}
+
+/**
+ * Computes RotationResult from quaternion
+ */
+export function quaternionToResult(q: Quaternion): RotationResult {
+  const normalized = normalizeQuaternion(q);
+  return {
+    quaternion: normalized,
+    euler: quaternionToEuler(normalized),
+    matrix: quaternionToMatrix(normalized),
+  };
+}
+
+/**
  * Formats number with specified decimal places
  */
 export function formatNumber(n: number, decimals: number = 4): string {

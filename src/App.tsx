@@ -1,5 +1,6 @@
 import { AxisSwapCalculator } from './components/axis-swap/AxisSwapCalculator';
 import { type Tab, TabContainer } from './components/common/TabContainer';
+import { RotationConverter } from './components/converter/RotationConverter';
 import { RotationChainCalculator } from './components/rotation/RotationChainCalculator';
 import { SettingsProvider } from './contexts/SettingsContext';
 
@@ -13,6 +14,11 @@ const tabs: Tab[] = [
     id: 'axis-swap',
     label: 'Axis Swap',
     content: <AxisSwapCalculator />,
+  },
+  {
+    id: 'conversion',
+    label: 'Conversion',
+    content: <RotationConverter />,
   },
 ];
 
