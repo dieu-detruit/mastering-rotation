@@ -14,4 +14,4 @@ Next thing you know, you’ve asked ChatGPT, received an answer with maximum con
 
 It’s time for mastering-rotation, which provides a few small, frequently-used rotation calculators with a clean, simple UI.
 
-I don't know you can master rotation math with it though.
+Will this actually help you master rotation math? …maybe.
