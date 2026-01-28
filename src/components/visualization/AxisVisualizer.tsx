@@ -242,14 +242,17 @@ function RotationIndicator({ quaternion }: RotationIndicatorProps) {
 
   return (
     <group>
-      {/* Rotation axis line */}
+      {/* Rotation axis line (dashed, light color) */}
       <Line
         points={[
           axis.clone().multiplyScalar(-axisLength),
           axis.clone().multiplyScalar(axisLength),
         ]}
-        color="#f97316"
-        lineWidth={2}
+        color="#fdba74"
+        lineWidth={1.5}
+        dashed
+        dashSize={0.05}
+        gapSize={0.03}
       />
 
       {/* Arc */}
